@@ -20,6 +20,8 @@ import {
   ConfirmSchema,
   type FormState,
 } from "@/lib/definitions";
+import { verifyIdToken } from "@/lib/dal";
+import { recordLogin } from "@/lib/users";
 import type { ZodError } from "zod";
 
 // ---------------------------------------------------------------------------
@@ -216,6 +218,23 @@ export async function login(
       accessToken: result.AccessToken,
       refreshToken: result.RefreshToken,
     });
+
+    // ---- Ruajtja e përdoruesit në DynamoDB ---------------------------------
+    // Nuk i besojmë formës për të marrë identitetin: e nxjerrim nga ID token-i
+    // që sapo na dha Cognito, PASI e verifikojmë nënshkrimin. Kështu `userId`
+    // vjen gjithmonë nga një burim i besuar.
+    //
+    // E bëjmë brenda try-it POR me `catch` të vetin: nëse DynamoDB është jashtë
+    // funksionit ose kredencialet IAM janë gabim, përdoruesi HYN gjithsesi —
+    // login-i nuk varet nga kjo. Gabimi shkon te terminali që ta shohim ne.
+    const user = await verifyIdToken(result.IdToken);
+    if (user) {
+      try {
+        await recordLogin(user);
+      } catch (error) {
+        console.error("[DynamoDB] Ruajtja e përdoruesit dështoi:", error);
+      }
+    }
   } catch (error) {
     return { message: cognitoErrorMessage(error) };
   }

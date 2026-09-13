@@ -1,20 +1,11 @@
 import "server-only";
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 import { createHmac } from "node:crypto";
+import { requireEnv } from "@/lib/env";
 
 // Lexojmë konfigurimin një herë të vetme kur ngarkohet moduli.
 // Nëse mungon diçka, dështojmë menjëherë me një mesazh të qartë,
 // në vend që të marrim gabime të çuditshme nga AWS më vonë.
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Mungon variabla e mjedisit ${name}. Kontrollo skedarin .env.local`
-    );
-  }
-  return value;
-}
-
 export const cognitoConfig = {
   region: requireEnv("AWS_REGION"),
   userPoolId: requireEnv("COGNITO_USER_POOL_ID"),

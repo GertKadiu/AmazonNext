@@ -30,6 +30,29 @@ export type SessionUser = {
 };
 
 /**
+ * Verifikon një ID token të dhënë dhe nxjerr prej tij përdoruesin.
+ * Kthen `null` nëse tokeni është i falsifikuar, i skaduar, ose i lëshuar për
+ * një User Pool tjetër.
+ *
+ * E kemi ndarë nga `getCurrentUser()` sepse nganjëherë e kemi tokenin në dorë
+ * pa qenë ende në cookie — p.sh. menjëherë pas login-it, te Server Action-i.
+ */
+export async function verifyIdToken(
+  idToken: string
+): Promise<SessionUser | null> {
+  try {
+    const payload = await idTokenVerifier.verify(idToken);
+    return {
+      userId: payload.sub,
+      email: String(payload.email ?? ""),
+      emailVerified: payload.email_verified === true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Verifikon sesionin aktual dhe kthen përdoruesin, ose `null` nëse nuk ka
  * sesion të vlefshëm. NUK bën redirect — e përdorim kur duam të vendosim vetë
  * çfarë të bëjmë (p.sh. në faqen kryesore: shfaq "Login" ose "Dashboard").
@@ -41,18 +64,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const { idToken } = await getSessionTokens();
   if (!idToken) return null;
 
-  try {
-    const payload = await idTokenVerifier.verify(idToken);
-    return {
-      userId: payload.sub,
-      email: String(payload.email ?? ""),
-      emailVerified: payload.email_verified === true,
-    };
-  } catch {
-    // Token i falsifikuar, i skaduar, ose i lëshuar për një User Pool tjetër.
-    // E trajtojmë njësoj si "nuk ka sesion".
-    return null;
-  }
+  return verifyIdToken(idToken);
 });
 
 /**
