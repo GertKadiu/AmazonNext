@@ -1,4 +1,19 @@
 import * as z from "zod";
+import type { ZodError } from "zod";
+
+/**
+ * Kthen gabimet e Zod-it në formën { email: [...], password: [...] } që përdorin
+ * format. Zhvendosur këtu nga Server Action-et sepse tani validimin e bëjnë
+ * komponentët klient (login/signup/confirm) përpara se t'i dërgojnë Amplify-t.
+ */
+export function flattenFieldErrors(error: ZodError): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const issue of error.issues) {
+    const key = String(issue.path[0] ?? "form");
+    (out[key] ??= []).push(issue.message);
+  }
+  return out;
+}
 
 // Rregullat e Cognito-s për fjalëkalimin (politika default e User Pool-it):
 // min 8 karaktere, të paktën 1 shkronjë e madhe, 1 e vogël, 1 numër, 1 simbol.

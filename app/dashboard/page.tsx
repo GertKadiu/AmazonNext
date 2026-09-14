@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/dal";
 import { getUserRecord } from "@/lib/users";
-import { logout } from "@/app/actions/auth";
+import { LogoutButton } from "@/components/logout-button";
 import { Card, Title } from "@/components/ui";
 
 // Faqe e mbrojtur. `verifySession()` verifikon JWT-në nga cookie dhe, nëse
@@ -80,18 +80,9 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Logout: një formë pa fusha, që thërret direkt Server Action-in.
-          Përdorim <form> në vend të <button onClick> sepse:
-            1. Funksionon edhe pa JavaScript
-            2. Server Action-i ekzekutohet në server, ku mund të fshijë cookie-t */}
-      <form action={logout}>
-        <button
-          type="submit"
-          className="w-full rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-        >
-          Dil
-        </button>
-      </form>
+      {/* Logout: client component që thërret `signOut` të Amplify (fshin sesionin
+          te Cognito dhe cookie-t në browser). */}
+      <LogoutButton />
     </Card>
   );
 }

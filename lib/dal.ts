@@ -1,70 +1,45 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { CognitoJwtVerifier } from "aws-jwt-verify";
-import { cognitoConfig } from "@/lib/cognito";
-import { getSessionTokens } from "@/lib/session";
+import { createClient } from "@/lib/supabase/server";
 
-/**
- * Verifikuesi i JWT-ve. Krijohet një herë të vetme (module-level) sepse
- * brenda mban një cache të çelësave publikë (JWKS) të User Pool-it —
- * i shkarkon në thirrjen e parë dhe i ripërdor pas kësaj.
- *
- * Ai kontrollon automatikisht:
- *   - nënshkrimin (me çelësin publik të Cognito-s)
- *   - `iss` → që tokeni vjen pikërisht nga User Pool-i YNË
- *   - `aud` → që tokeni u lëshua për App Client-in TONË
- *   - `exp` → që nuk ka skaduar
- *   - `token_use` → që është ID token (jo access token)
- */
-const idTokenVerifier = CognitoJwtVerifier.create({
-  userPoolId: cognitoConfig.userPoolId,
-  clientId: cognitoConfig.clientId,
-  tokenUse: "id",
-});
+// Data Access Layer — sesioni i aplikacionit është tani GJITHMONË i Supabase-it.
+// Cognito përdoret vetëm gjatë migrimit (shih app/actions/migrate.ts).
 
 export type SessionUser = {
-  userId: string; // `sub` — identifikuesi unik dhe i pandryshueshëm i përdoruesit
+  /**
+   * `id` i përdoruesit në Supabase. Për përdoruesit e migruar është I NJËJTI
+   * me `sub`-in e vjetër të Cognito-s, prandaj tabela `Users` në DynamoDB
+   * (e çelësuar me këtë vlerë) vazhdon të përputhet.
+   */
+  userId: string;
   email: string;
   emailVerified: boolean;
 };
 
 /**
- * Verifikon një ID token të dhënë dhe nxjerr prej tij përdoruesin.
- * Kthen `null` nëse tokeni është i falsifikuar, i skaduar, ose i lëshuar për
- * një User Pool tjetër.
+ * Kthen përdoruesin e sesionit aktual, ose `null`. NUK bën redirect.
  *
- * E kemi ndarë nga `getCurrentUser()` sepse nganjëherë e kemi tokenin në dorë
- * pa qenë ende në cookie — p.sh. menjëherë pas login-it, te Server Action-i.
- */
-export async function verifyIdToken(
-  idToken: string
-): Promise<SessionUser | null> {
-  try {
-    const payload = await idTokenVerifier.verify(idToken);
-    return {
-      userId: payload.sub,
-      email: String(payload.email ?? ""),
-      emailVerified: payload.email_verified === true,
-    };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Verifikon sesionin aktual dhe kthen përdoruesin, ose `null` nëse nuk ka
- * sesion të vlefshëm. NUK bën redirect — e përdorim kur duam të vendosim vetë
- * çfarë të bëjmë (p.sh. në faqen kryesore: shfaq "Login" ose "Dashboard").
+ * Përdorim `getUser()` dhe jo `getSession()`: `getUser()` e validon tokenin te
+ * serveri i Supabase, ndaj nuk i besojmë verbërisht përmbajtjes së cookie-s.
  *
- * `cache()` e React-it siguron që brenda të njëjtit render, edhe nëse 5 komponentë
- * e thërrasin këtë funksion, verifikimi bëhet vetëm një herë.
+ * `cache()` e React-it siguron një thirrje të vetme brenda të njëjtit render,
+ * sado komponentë ta kërkojnë përdoruesin.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
-  const { idToken } = await getSessionTokens();
-  if (!idToken) return null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
 
-  return verifyIdToken(idToken);
+  if (error || !user) return null;
+
+  return {
+    userId: user.id,
+    email: user.email ?? "",
+    emailVerified: Boolean(user.email_confirmed_at),
+  };
 });
 
 /**

@@ -1,23 +1,85 @@
 "use client";
 
-import { useActionState } from "react";
-import { confirmSignup, resendCode } from "@/app/actions/auth";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { syncUser } from "@/app/actions/auth";
+import { ConfirmSchema, flattenFieldErrors } from "@/lib/definitions";
+import { supabaseErrorMessage } from "@/lib/auth-errors";
 import { Field, Button, Alert } from "@/components/ui";
 
 export function ConfirmForm({ email }: { email: string }) {
-  const [state, action, pending] = useActionState(confirmSignup, undefined);
-  const [resendState, resendAction, resendPending] = useActionState(
-    resendCode,
-    undefined
-  );
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [resendPending, startResend] = useTransition();
+  const [message, setMessage] = useState<string>();
+  const [info, setInfo] = useState<string>();
+  const [errors, setErrors] = useState<Record<string, string[]>>();
+
+  function handleConfirm(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(undefined);
+    setInfo(undefined);
+    setErrors(undefined);
+
+    const formData = new FormData(event.currentTarget);
+    const parsed = ConfirmSchema.safeParse({
+      email: formData.get("email"),
+      code: formData.get("code"),
+    });
+    if (!parsed.success) {
+      setErrors(flattenFieldErrors(parsed.error));
+      return;
+    }
+
+    startTransition(async () => {
+      const supabase = createClient();
+
+      // `verifyOtp` bën dy gjëra njëherësh: konfirmon email-in DHE hap sesionin.
+      // Prandaj pas tij përdoruesi është tashmë i loguar — nuk e çojmë më te
+      // /login siç bënim me Cognito, por direkt te dashboard.
+      const { error } = await supabase.auth.verifyOtp({
+        email: parsed.data.email,
+        token: parsed.data.code,
+        type: "signup",
+      });
+
+      if (error) {
+        setMessage(supabaseErrorMessage(error));
+        return;
+      }
+
+      try {
+        await syncUser();
+      } catch (syncError) {
+        console.error("[syncUser] dështoi (injorohet):", syncError);
+      }
+
+      router.push("/dashboard");
+    });
+  }
+
+  function handleResend() {
+    setMessage(undefined);
+    setInfo(undefined);
+
+    startResend(async () => {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({ type: "signup", email });
+
+      if (error) {
+        setMessage(supabaseErrorMessage(error));
+        return;
+      }
+      setInfo("Kodi u ridërgua. Kontrollo email-in (edhe Spam).");
+    });
+  }
 
   return (
     <>
-      <form action={action}>
-        {state?.message && <Alert>{state.message}</Alert>}
-        {resendState?.message && (
-          <Alert kind="info">{resendState.message}</Alert>
-        )}
+      <form onSubmit={handleConfirm}>
+        {message && <Alert>{message}</Alert>}
+        {info && <Alert kind="info">{info}</Alert>}
 
         <Field
           id="email"
@@ -27,7 +89,7 @@ export function ConfirmForm({ email }: { email: string }) {
           defaultValue={email}
           autoComplete="email"
           required
-          errors={state?.errors?.email}
+          errors={errors?.email}
         />
 
         <Field
@@ -39,7 +101,7 @@ export function ConfirmForm({ email }: { email: string }) {
           placeholder="123456"
           autoComplete="one-time-code"
           required
-          errors={state?.errors?.code}
+          errors={errors?.code}
         />
 
         <Button type="submit" pending={pending}>
@@ -47,19 +109,16 @@ export function ConfirmForm({ email }: { email: string }) {
         </Button>
       </form>
 
-      {/* Formë e dytë, e pavarur, vetëm për ridërgimin e kodit.
-          Ka input-in e vet të fshehur për email-in sepse çdo formë dërgon
-          vetëm fushat e saj. */}
-      <form action={resendAction} className="mt-4 text-center">
-        <input type="hidden" name="email" value={email} />
+      <div className="mt-4 text-center">
         <button
-          type="submit"
+          type="button"
+          onClick={handleResend}
           disabled={resendPending}
           className="text-sm text-zinc-600 underline disabled:opacity-60 dark:text-zinc-400"
         >
           {resendPending ? "Duke dërguar..." : "Nuk more kod? Ridërgo"}
         </button>
-      </form>
+      </div>
     </>
   );
 }
