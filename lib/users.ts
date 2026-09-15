@@ -21,6 +21,12 @@ export type UserRecord = {
   createdAt: string; // ISO 8601, hera e parë që u pa ky përdorues
   lastLoginAt: string; // ISO 8601, login-i i fundit
   loginCount: number;
+
+  // Avatari. Skedari vetë rri në S3 (bucket privat); këtu mbajmë vetëm faktin
+  // që ekziston dhe llojin e tij. Çelësi i objektit nxirret nga `userId`,
+  // ndaj nuk ka nevojë të ruhet.
+  avatarContentType?: string;
+  avatarUpdatedAt?: string; // ISO 8601; mungesa e saj do të thotë "pa avatar"
 };
 
 /**
@@ -81,4 +87,32 @@ export async function getUserRecord(
   );
 
   return (result.Item as UserRecord | undefined) ?? null;
+}
+
+/**
+ * Shënon se përdoruesi ka avatar. Thirret PAS ngarkimit të suksesshëm te S3.
+ *
+ * Përdor `UpdateCommand` me çelësin ekzistues, pra nuk prek asnjë fushë tjetër
+ * të rreshtit — `loginCount`, `createdAt` dhe të tjerat mbeten si ishin.
+ */
+export async function setAvatar(
+  userId: string,
+  contentType: string
+): Promise<void> {
+  await docClient.send(
+    new UpdateCommand({
+      TableName: USERS_TABLE,
+      Key: { userId },
+      UpdateExpression:
+        "SET #avatarContentType = :contentType, #avatarUpdatedAt = :now",
+      ExpressionAttributeNames: {
+        "#avatarContentType": "avatarContentType",
+        "#avatarUpdatedAt": "avatarUpdatedAt",
+      },
+      ExpressionAttributeValues: {
+        ":contentType": contentType,
+        ":now": new Date().toISOString(),
+      },
+    })
+  );
 }

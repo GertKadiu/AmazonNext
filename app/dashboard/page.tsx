@@ -1,6 +1,8 @@
 import { verifySession } from "@/lib/dal";
 import { getUserRecord } from "@/lib/users";
 import { LogoutButton } from "@/components/logout-button";
+import { AvatarUpload } from "@/components/avatar-upload";
+import { signedAvatarUrl } from "@/lib/s3";
 import { Card, Title } from "@/components/ui";
 
 // Faqe e mbrojtur. `verifySession()` verifikon JWT-në nga cookie dhe, nëse
@@ -14,9 +16,35 @@ export default async function DashboardPage() {
   // tabelën — rreshti krijohet në login-in e radhës.
   const record = await getUserRecord(user.userId);
 
+  // Bucket-i është privat, ndaj `<img src>` nuk mund të tregojë drejt te S3.
+  // Krijojmë një link të nënshkruar që skadon — vetëm nëse dimë se ka avatar.
+  const avatarUrl = record?.avatarUpdatedAt
+    ? await signedAvatarUrl(user.userId)
+    : null;
+
   return (
     <Card>
       <Title>Dashboard</Title>
+
+      <div className="mb-6 flex items-center gap-4">
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- URL e nënshkruar, skadon; jo për optimizim
+          <img
+            src={avatarUrl}
+            alt="Fotoja e profilit"
+            width={64}
+            height={64}
+            className="h-16 w-16 shrink-0 rounded-full object-cover ring-1 ring-zinc-200 dark:ring-zinc-800"
+          />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-lg font-medium text-zinc-400 dark:bg-zinc-900 dark:text-zinc-600">
+            {(user.email[0] ?? "?").toUpperCase()}
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <AvatarUpload hasAvatar={Boolean(avatarUrl)} />
+        </div>
+      </div>
 
       <dl className="mb-6 space-y-3 text-sm">
         <div>
