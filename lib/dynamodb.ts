@@ -19,10 +19,10 @@ import { requireEnv } from "@/lib/env";
 export const USERS_TABLE = requireEnv("DYNAMODB_USERS_TABLE");
 
 const client = new DynamoDBClient({
-  region: requireEnv("AWS_REGION"),
+  region: requireEnv("APP_AWS_REGION"),
   credentials: {
-    accessKeyId: requireEnv("AWS_ACCESS_KEY_ID"),
-    secretAccessKey: requireEnv("AWS_SECRET_ACCESS_KEY"),
+    accessKeyId: requireEnv("APP_AWS_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("APP_AWS_SECRET_ACCESS_KEY"),
   },
 });
 

@@ -2,29 +2,40 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { readCognitoSession } from "@/lib/cognito";
 
-// Data Access Layer — sesioni i aplikacionit është tani GJITHMONË i Supabase-it.
-// Cognito përdoret vetëm gjatë migrimit (shih app/actions/migrate.ts).
+// Data Access Layer.
+//
+// Gjatë migrimit aplikacioni pranon DY sesione:
+//   1. Supabase — sistemi i ri, ka gjithmonë përparësi
+//   2. Cognito  — URË KALIMTARE për ata që ishin të loguar para migrimit
+//
+// Askënd nuk e nxjerrim jashtë: sesioni i vjetër vlen derisa përdoruesi të dalë
+// vetë. Kur të rihyjë, login-i e migron (shih app/actions/migrate.ts).
+//
+// Kur të mos ketë më sesione Cognito, hiqet dega e dytë dhe krejt lib/cognito.ts.
 
 export type SessionUser = {
   /**
-   * `id` i përdoruesit në Supabase. Për përdoruesit e migruar është I NJËJTI
-   * me `sub`-in e vjetër të Cognito-s, prandaj tabela `Users` në DynamoDB
-   * (e çelësuar me këtë vlerë) vazhdon të përputhet.
+   * Për përdoruesit e Supabase-it: `id` i tyre — që për të migruarit është I
+   * NJËJTI me `sub`-in e vjetër të Cognito-s. Për sesionet e mbetura të
+   * Cognito-s: vetë `sub`-i. Pra tabela `Users` në DynamoDB përputhet në të dyja rastet.
    */
   userId: string;
   email: string;
   emailVerified: boolean;
+  /** Nga cili sistem vjen sesioni — e dobishme për të matur ecurinë e migrimit. */
+  provider: "supabase" | "cognito";
 };
 
 /**
  * Kthen përdoruesin e sesionit aktual, ose `null`. NUK bën redirect.
  *
- * Përdorim `getUser()` dhe jo `getSession()`: `getUser()` e validon tokenin te
- * serveri i Supabase, ndaj nuk i besojmë verbërisht përmbajtjes së cookie-s.
+ * Te Supabase përdorim `getUser()` dhe jo `getSession()`: ai e validon tokenin
+ * te serveri, ndaj nuk i besojmë verbërisht cookie-s. Te Cognito verifikojmë
+ * nënshkrimin e ID token-it me çelësat publikë të User Pool-it.
  *
- * `cache()` e React-it siguron një thirrje të vetme brenda të njëjtit render,
- * sado komponentë ta kërkojnë përdoruesin.
+ * `cache()` siguron një thirrje të vetme brenda të njëjtit render.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
@@ -33,13 +44,20 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) return null;
+  if (!error && user) {
+    return {
+      userId: user.id,
+      email: user.email ?? "",
+      emailVerified: Boolean(user.email_confirmed_at),
+      provider: "supabase",
+    };
+  }
 
-  return {
-    userId: user.id,
-    email: user.email ?? "",
-    emailVerified: Boolean(user.email_confirmed_at),
-  };
+  // Pa sesion Supabase → mos e nxirr jashtë; mund të jetë ende me Cognito.
+  const legacy = await readCognitoSession();
+  if (!legacy) return null;
+
+  return { ...legacy, provider: "cognito" };
 });
 
 /**

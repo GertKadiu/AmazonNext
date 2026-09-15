@@ -35,7 +35,9 @@ export type UserRecord = {
  * një listë të gjatë fjalësh të rezervuara (name, status, count...) dhe alias-i
  * na kursen befasi nëse nesër shtojmë një fushë me emër të tillë.
  */
-export async function recordLogin(user: SessionUser): Promise<UserRecord> {
+export async function recordLogin(
+  user: Pick<SessionUser, "userId" | "email" | "emailVerified">
+): Promise<UserRecord> {
   const now = new Date().toISOString();
 
   const result = await docClient.send(

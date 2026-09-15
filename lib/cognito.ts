@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import {
   CognitoIdentityProviderClient,
   AdminGetUserCommand,
@@ -13,8 +14,8 @@ import { requireEnv } from "@/lib/env";
 // verifikon kredencialet te Cognito me SRP dhe na sjell një ID token; ne e
 // verifikojmë këtu dhe prej tij marrim `sub`-in që i japim përdoruesit të ri
 // në Supabase. Sesioni i aplikacionit është GJITHMONË i Supabase-it.
-export const cognitoConfig = {
-  region: requireEnv("AWS_REGION"),
+const cognitoConfig = {
+  region: requireEnv("APP_AWS_REGION"),
   userPoolId: requireEnv("COGNITO_USER_POOL_ID"),
   clientId: requireEnv("COGNITO_CLIENT_ID"),
 };
@@ -75,8 +76,8 @@ export async function verifyCognitoIdToken(
 const cognitoAdminClient = new CognitoIdentityProviderClient({
   region: cognitoConfig.region,
   credentials: {
-    accessKeyId: requireEnv("AWS_ACCESS_KEY_ID"),
-    secretAccessKey: requireEnv("AWS_SECRET_ACCESS_KEY"),
+    accessKeyId: requireEnv("APP_AWS_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("APP_AWS_SECRET_ACCESS_KEY"),
   },
 });
 
@@ -119,4 +120,40 @@ export async function lookupCognitoUser(email: string): Promise<LegacyLookup> {
     );
     return "unknown";
   }
+}
+
+// ---------------------------------------------------------------------------
+// URË KALIMTARE — leximi i sesionit TË VJETËR të Cognito-s.
+//
+// Përdoruesit e loguar me Cognito para migrimit NUK i nxjerrim jashtë. Sesioni
+// i tyre vlen derisa të dalin vetë; kur të rihyjnë, migrohen.
+//
+// Amplify (me `ssr: true`) i ruan tokenat në cookie me emra si:
+//   CognitoIdentityServiceProvider.<clientId>.<username>.idToken
+//
+// I lexojmë DREJTPËRDREJT. Qëllimisht NUK përdorim adapter-in server të
+// Amplify-t: ai shkruan cookie kur lexon sesionin, dhe shkrimi i cookie-ve
+// brenda një Server Action-i prish përgjigjen RSC.
+//
+// Hiqet krejt kur migrimi të mbarojë.
+// ---------------------------------------------------------------------------
+
+const COGNITO_COOKIE_PREFIX = "CognitoIdentityServiceProvider.";
+
+/**
+ * Kthen identitetin nga sesioni i vjetër i Cognito-s, ose `null`.
+ * Tokenit i verifikohet nënshkrimi — nuk i besojmë cookie-s ashtu siç vjen.
+ */
+export async function readCognitoSession(): Promise<CognitoIdentity | null> {
+  const store = await cookies();
+  const cookie = store
+    .getAll()
+    .find(
+      (c) =>
+        c.name.startsWith(COGNITO_COOKIE_PREFIX) && c.name.endsWith(".idToken")
+    );
+  const idToken = cookie?.value;
+  if (!idToken) return null;
+
+  return verifyCognitoIdToken(idToken);
 }

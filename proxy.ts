@@ -42,10 +42,21 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // URË KALIMTARE: pranojmë edhe sesionin e vjetër të Cognito-s, që përdoruesit
+  // e loguar para migrimit të mos nxirren jashtë. Këtu vetëm kontroll PRANIE —
+  // verifikimi i vërtetë bëhet te lib/dal.ts ("defense in depth").
+  const hasLegacySession = request.cookies
+    .getAll()
+    .some(
+      (c) =>
+        c.name.startsWith("CognitoIdentityServiceProvider.") &&
+        c.name.endsWith(".idToken")
+    );
+
   const { pathname } = request.nextUrl;
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
 
-  if (isProtected && !user) {
+  if (isProtected && !user && !hasLegacySession) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 

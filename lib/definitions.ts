@@ -35,13 +35,6 @@ export const SignupSchema = z.object({
   password: passwordSchema,
 });
 
-export const LoginSchema = z.object({
-  email: emailSchema,
-  // Në login nuk aplikojmë rregullat e forta — thjesht kontrollojmë që s'është bosh.
-  // Cognito do ta thotë vetë nëse është gabim.
-  password: z.string().min(1, { error: "Shkruaj fjalëkalimin" }),
-});
-
 export const ConfirmSchema = z.object({
   email: emailSchema,
   code: z
@@ -49,19 +42,3 @@ export const ConfirmSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, { error: "Kodi është 6 shifra" }),
 });
-
-/**
- * Forma e gjendjes që Server Actions kthejnë te `useActionState`.
- *   errors  → gabime për fushë të caktuar (nga Zod)
- *   message → gabim i përgjithshëm (nga Cognito, p.sh. "email-i ekziston")
- */
-export type FormState =
-  | {
-      errors?: {
-        email?: string[];
-        password?: string[];
-        code?: string[];
-      };
-      message?: string;
-    }
-  | undefined;

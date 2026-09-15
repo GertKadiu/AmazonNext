@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { signOut as cognitoSignOut } from "aws-amplify/auth";
 import { createClient } from "@/lib/supabase/client";
 
 // Logout i sesionit të Supabase-it (sesioni i vetëm i aplikacionit).
@@ -16,6 +17,10 @@ export function LogoutButton() {
       try {
         const supabase = createClient();
         await supabase.auth.signOut();
+        // Mbyll edhe sesionin e vjetër të Cognito-s, nëse ka mbetur ndonjë. Pa
+        // këtë, dalja s'do të ishte e plotë: dal.ts do ta pranonte ende dhe
+        // përdoruesi do të mbetej brenda.
+        await cognitoSignOut().catch(() => {});
       } finally {
         router.push("/login");
       }
