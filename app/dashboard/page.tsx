@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifySession } from "@/lib/dal";
 import { LogoutButton } from "@/components/logout-button";
 import { UserRecord } from "@/components/user-record";
@@ -43,6 +44,15 @@ export default async function DashboardPage() {
       {/* Nga API-ja, i marrë pas ngarkimit — vër re gjendjen "duke lexuar" */}
       <div className="mb-6">
         <UserRecord />
+      </div>
+
+      <div className="mb-3">
+        <Link
+          href="/profile"
+          className="block w-full rounded-md border border-zinc-300 px-4 py-2 text-center text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
+        >
+          Profili
+        </Link>
       </div>
 
       <LogoutButton />

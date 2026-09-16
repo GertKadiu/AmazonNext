@@ -27,6 +27,23 @@ export type UserRecord = {
   // ndaj nuk ka nevojë të ruhet.
   avatarContentType?: string;
   avatarUpdatedAt?: string; // ISO 8601; mungesa e saj do të thotë "pa avatar"
+
+  // Profili — të dhëna që i shkruan vetë përdoruesi. Të gjitha opsionale:
+  // rreshti krijohet në login-in e parë, shumë kohë para se dikush ta plotësojë
+  // profilin. Kodi që i lexon duhet të presë `undefined`.
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  city?: string;
+  profileUpdatedAt?: string; // ISO 8601; mungesa do të thotë "pa prekur ende"
+};
+
+/** Fushat që përdoruesi mund t'i ndryshojë. Vini re: `email` NUK është këtu. */
+export type ProfileInput = {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  city?: string;
 };
 
 /**
@@ -115,4 +132,64 @@ export async function setAvatar(
       },
     })
   );
+}
+
+/**
+ * Ruan fushat e profilit.
+ *
+ * Ndryshe nga `setAvatar`, ku fushat janë gjithmonë të njëjtat, këtu përdoruesi
+ * mund të dërgojë vetëm një pjesë — p.sh. vetëm `city`. Prandaj `UpdateExpression`
+ * ndërtohet DINAMIKISHT nga çelësat që erdhën vërtet.
+ *
+ * Pse jo `PutCommand`: ai e zëvendëson gjithë rreshtin. Do të fshinte
+ * `loginCount`, `createdAt` dhe avatarin. `UpdateCommand` prek vetëm ato fusha
+ * që përmend shprehimisht.
+ *
+ * Fushat bosh fshihen me `REMOVE` në vend që të ruhen si string bosh — kështu
+ * "pa qytet" dhe "qytet bosh" mbeten e njëjta gjendje, dhe leximi mbetet i thjeshtë.
+ */
+export async function setProfile(
+  userId: string,
+  input: ProfileInput
+): Promise<UserRecord> {
+  const FIELDS = ["firstName", "lastName", "bio", "city"] as const;
+
+  const sets: string[] = ["#profileUpdatedAt = :now"];
+  const removes: string[] = [];
+  const names: Record<string, string> = {
+    "#profileUpdatedAt": "profileUpdatedAt",
+  };
+  const values: Record<string, unknown> = { ":now": new Date().toISOString() };
+
+  for (const field of FIELDS) {
+    const raw = input[field];
+    if (raw === undefined) continue; // fusha nuk u dërgua fare → mos e prek
+
+    const trimmed = raw.trim();
+    names[`#${field}`] = field;
+
+    if (trimmed === "") {
+      removes.push(`#${field}`);
+    } else {
+      sets.push(`#${field} = :${field}`);
+      values[`:${field}`] = trimmed;
+    }
+  }
+
+  const expression =
+    `SET ${sets.join(", ")}` +
+    (removes.length ? ` REMOVE ${removes.join(", ")}` : "");
+
+  const result = await docClient.send(
+    new UpdateCommand({
+      TableName: USERS_TABLE,
+      Key: { userId },
+      UpdateExpression: expression,
+      ExpressionAttributeNames: names,
+      ExpressionAttributeValues: values,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+
+  return result.Attributes as UserRecord;
 }

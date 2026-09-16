@@ -105,7 +105,7 @@ export function UserRecord() {
 
       <div className="rounded-md border border-zinc-200 p-4 dark:border-zinc-800">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Nga DynamoDB · përmes /api/me
+          Nga DynamoDB · përmes /api/getDashboard
         </h2>
 
         {record ? (

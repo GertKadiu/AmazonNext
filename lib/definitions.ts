@@ -42,3 +42,38 @@ export const ConfirmSchema = z.object({
     .trim()
     .regex(/^\d{6}$/, { error: "Kodi është 6 shifra" }),
 });
+
+/**
+ * Fushat e profilit.
+ *
+ * Të gjitha janë `optional`: formulari mund të dërgojë vetëm atë që ndryshoi,
+ * dhe `setProfile` i lë të paprekura fushat që nuk erdhën.
+ *
+ * Vlera bosh lejohet me qëllim — ajo do të thotë "fshije këtë fushë", dhe
+ * përkthehet në `REMOVE` te DynamoDB.
+ *
+ * `email` NUK është këtu: identiteti vjen nga tokeni i verifikuar, kurrë nga
+ * trupi i kërkesës.
+ */
+export const ProfileSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .max(50, { error: "Emri është shumë i gjatë (max 50)" })
+    .optional(),
+  lastName: z
+    .string()
+    .trim()
+    .max(50, { error: "Mbiemri është shumë i gjatë (max 50)" })
+    .optional(),
+  bio: z
+    .string()
+    .trim()
+    .max(300, { error: "Bio-ja është shumë e gjatë (max 300)" })
+    .optional(),
+  city: z
+    .string()
+    .trim()
+    .max(60, { error: "Qyteti është shumë i gjatë (max 60)" })
+    .optional(),
+});

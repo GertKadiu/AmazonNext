@@ -10,7 +10,7 @@ import { NextResponse, type NextRequest } from "next/server";
 //  2. Një kontroll i shpejtë mbrojtjeje për rrugët private. Mbrojtja e vërtetë
 //     bëhet gjithsesi te lib/dal.ts, afër të dhënave ("defense in depth").
 
-const protectedRoutes = ["/dashboard"];
+const protectedRoutes = ["/dashboard", "/profile"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
