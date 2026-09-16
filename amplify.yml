@@ -1,0 +1,47 @@
+# Konfigurimi i build-it për AWS Amplify Hosting.
+#
+# PSE EKZISTON KY SKEDAR
+#
+# Amplify Hosting i vendos variablat e konsolës në mjedisin e BUILD-it, por NUK
+# i kalon te funksioni Lambda që shërben faqet. Rezultati: build-i kalon, dhe
+# pastaj çdo faqe që lexon një variabël server-side rrëzohet me 500 — sepse
+# `requireEnv` te lib/env.ts hedh gabim sapo ngarkohet moduli.
+#
+# Zgjidhja: i shkruajmë në `.env.production` PARA `next build`, që Next-i t'i
+# përfshijë në paketimin e serverit.
+#
+# Siguria: vetëm variablat me prefiks `NEXT_PUBLIC_` përfundojnë në bundle-in e
+# browser-it. Të tjerat mbeten server-side, ku duhen. `.env.production` është
+# nën `.gitignore` (rreshti `.env*`) — krijohet gjatë build-it dhe s'commit-ohet kurrë.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        - |
+          cat >> .env.production <<ENVEOF
+          APP_AWS_REGION=$APP_AWS_REGION
+          APP_AWS_ACCESS_KEY_ID=$APP_AWS_ACCESS_KEY_ID
+          APP_AWS_SECRET_ACCESS_KEY=$APP_AWS_SECRET_ACCESS_KEY
+          COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID
+          COGNITO_CLIENT_ID=$COGNITO_CLIENT_ID
+          DYNAMODB_USERS_TABLE=$DYNAMODB_USERS_TABLE
+          S3_AVATARS_BUCKET=$S3_AVATARS_BUCKET
+          SUPABASE_SECRET_KEY=$SUPABASE_SECRET_KEY
+          NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID=$NEXT_PUBLIC_COGNITO_USER_POOL_ID
+          NEXT_PUBLIC_COGNITO_CLIENT_ID=$NEXT_PUBLIC_COGNITO_CLIENT_ID
+          ENVEOF
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*

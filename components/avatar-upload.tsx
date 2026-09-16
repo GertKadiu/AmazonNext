@@ -7,7 +7,18 @@ import { createAvatarUpload, confirmAvatarUpload } from "@/app/actions/avatar";
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 2 * 1024 * 1024;
 
-export function AvatarUpload({ hasAvatar }: { hasAvatar: boolean }) {
+export function AvatarUpload({
+  hasAvatar,
+  onUploaded,
+}: {
+  hasAvatar: boolean;
+  /**
+   * Thirret pas një ngarkimi të suksesshëm. Kur të dhënat vijnë nga një Server
+   * Component, `router.refresh()` mjafton; kur vijnë nga API-ja, komponenti
+   * prind duhet t'i rilexojë vetë — prandaj e vendos ai çfarë ndodh këtu.
+   */
+  onUploaded?: () => void;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
@@ -69,7 +80,9 @@ export function AvatarUpload({ hasAvatar }: { hasAvatar: boolean }) {
       }
 
       if (inputRef.current) inputRef.current.value = "";
-      router.refresh();
+
+      if (onUploaded) onUploaded();
+      else router.refresh();
     });
   }
 
