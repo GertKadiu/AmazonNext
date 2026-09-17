@@ -1,0 +1,71 @@
+{
+  "node": {
+    "009c80ee49eb1e4a1d64975e5e37f558f271517977": {
+      "workers": {
+        "app/confirm/page": {
+          "moduleId": 47925,
+          "async": false,
+          "codeHash": null
+        },
+        "app/login/page": {
+          "moduleId": 38417,
+          "async": false,
+          "codeHash": null
+        },
+        "app/signup/page": {
+          "moduleId": 43905,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "filename": "app/actions/auth.ts",
+      "exportedName": "syncUser"
+    },
+    "40b0cbdaefe277b155d35c1c0f5c67a5e6d39f91f6": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 66766,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "filename": "app/actions/avatar.ts",
+      "exportedName": "createAvatarUpload"
+    },
+    "40c55ccda0b9d9f0bfd8a6d9403c69656726075d4a": {
+      "workers": {
+        "app/dashboard/page": {
+          "moduleId": 66766,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "filename": "app/actions/avatar.ts",
+      "exportedName": "confirmAvatarUpload"
+    },
+    "60e70b9e33452f9d2ac2da8d16366c50914a50fbc9": {
+      "workers": {
+        "app/login/page": {
+          "moduleId": 38417,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "filename": "app/actions/migrate.ts",
+      "exportedName": "migrateCognitoUser"
+    },
+    "40d6825352a8daa9bcc07cc0311515944625acf761": {
+      "workers": {
+        "app/signup/page": {
+          "moduleId": 43905,
+          "async": false,
+          "codeHash": null
+        }
+      },
+      "filename": "app/actions/signup.ts",
+      "exportedName": "checkLegacyUser"
+    }
+  },
+  "edge": {},
+  "encryptionKey": "M8OAT7PlgTu6Khq+Nm2FTq980Y0JJh06WkQTxCnUA4E="
+}

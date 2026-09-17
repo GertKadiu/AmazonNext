@@ -1,0 +1,14 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/createProfile/route": "/api/createProfile",
+  "/api/getDashboard/route": "/api/getDashboard",
+  "/api/getProfile/route": "/api/getProfile",
+  "/confirm/page": "/confirm",
+  "/dashboard/page": "/dashboard",
+  "/favicon.ico/route": "/favicon.ico",
+  "/login/page": "/login",
+  "/page": "/",
+  "/profile/page": "/profile",
+  "/signup/page": "/signup"
+}

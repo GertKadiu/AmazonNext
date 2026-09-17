@@ -1,0 +1,12 @@
+var R=require("../../../chunks/[turbopack]_runtime.js")("server/app/api/getDashboard/route.js")
+R.c("server/chunks/[root-of-the-server]__0pvpcqw._.js")
+R.c("server/chunks/node_modules_102kdrg._.js")
+R.c("server/chunks/_0u5or30._.js")
+R.c("server/chunks/1daa_@aws-sdk_core_dist-es_submodules_protocols_json_codec-v2_JsonCodec2_1gao28z.js")
+R.c("server/chunks/node_modules_@smithy_0i94c8i._.js")
+R.c("server/chunks/_01a52j5._.js")
+R.c("server/chunks/[root-of-the-server]__00_hq9v._.js")
+R.c("server/chunks/node_modules_1pgbe4k._.js")
+R.c("server/chunks/_next-internal_server_app_api_getDashboard_route_actions_200h3fe.js")
+R.m(21910)
+module.exports=R.m(21910).exports
