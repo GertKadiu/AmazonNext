@@ -1,17 +1,14 @@
 import "server-only";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { requireEnv } from "@/lib/env";
+import { requireEnv, awsCredentials } from "@/lib/env";
 
 // Bucket-i i avatarëve. PRIVAT — asnjë objekt nuk lexohet pa një URL të nënshkruar.
 export const AVATARS_BUCKET = requireEnv("S3_AVATARS_BUCKET");
 
 export const s3Client = new S3Client({
   region: requireEnv("APP_AWS_REGION"),
-  credentials: {
-    accessKeyId: requireEnv("APP_AWS_ACCESS_KEY_ID"),
-    secretAccessKey: requireEnv("APP_AWS_SECRET_ACCESS_KEY"),
-  },
+  credentials: awsCredentials(),
 });
 
 /**

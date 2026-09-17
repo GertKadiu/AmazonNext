@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# artefaktet e build-it për Lambda (prodhohen nga `npx open-next build`)
+/.open-next/
+# dalja e CDK-së
+/cdk.out/
