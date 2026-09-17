@@ -5,7 +5,7 @@ import {
   AdminGetUserCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
-import { requireEnv, awsCredentials } from "@/lib/env";
+import { requireEnv } from "@/lib/env";
 
 // Konfigurimi i Cognito-s për anën e serverit.
 //
@@ -75,7 +75,10 @@ export async function verifyCognitoIdToken(
 // ---------------------------------------------------------------------------
 const cognitoAdminClient = new CognitoIdentityProviderClient({
   region: cognitoConfig.region,
-  credentials: awsCredentials(),
+  credentials: {
+    accessKeyId: requireEnv("APP_AWS_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("APP_AWS_SECRET_ACCESS_KEY"),
+  },
 });
 
 /**

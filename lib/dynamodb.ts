@@ -1,7 +1,7 @@
 import "server-only";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { requireEnv, awsCredentials } from "@/lib/env";
+import { requireEnv } from "@/lib/env";
 
 // ---------------------------------------------------------------------------
 // PSE KËTU DUHEN KREDENCIALE IAM, KURSE TE COGNITO JO?
@@ -20,7 +20,10 @@ export const USERS_TABLE = requireEnv("DYNAMODB_USERS_TABLE");
 
 const client = new DynamoDBClient({
   region: requireEnv("APP_AWS_REGION"),
-  credentials: awsCredentials(),
+  credentials: {
+    accessKeyId: requireEnv("APP_AWS_ACCESS_KEY_ID"),
+    secretAccessKey: requireEnv("APP_AWS_SECRET_ACCESS_KEY"),
+  },
 });
 
 /**
